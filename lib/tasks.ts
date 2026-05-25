@@ -235,7 +235,7 @@ export const TASK_MAP: Record<string, TaskDef> = Object.fromEntries(
   ALL_TASKS.map((t) => [t.key, t])
 );
 
-export const ROTATION_ANCHOR_DATE = "2026-06-01";
+export const ROTATION_ANCHOR_DATE = "2026-05-19";
 
 export function getRotationIndex(isoWeekKey: string): number {
   const [anchorYear, anchorWeek] = parseIsoWeek(ROTATION_ANCHOR_DATE);
