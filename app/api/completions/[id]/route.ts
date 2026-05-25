@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const token = await getSessionTokenFromCookie();
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,7 +14,8 @@ export async function DELETE(
   const userId = await getSessionUser(token);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const id = parseInt(params.id, 10);
+  const { id: rawId } = await params;
+  const id = parseInt(rawId, 10);
   if (isNaN(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const rows = await db
