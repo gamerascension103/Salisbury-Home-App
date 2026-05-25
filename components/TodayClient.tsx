@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatInTimeZone } from "date-fns-tz";
 import { TaskRow, CompletionData, UserData } from "./TaskRow";
 import { SectionCard } from "./SectionCard";
 import { Toast } from "./Toast";
@@ -14,6 +15,8 @@ interface RotationTaskInfo {
   duration: string;
 }
 
+const TZ = "America/Chicago";
+
 interface TodayClientProps {
   currentUserId: string;
   users: UserData[];
@@ -25,6 +28,9 @@ interface TodayClientProps {
   weekKey: string;
   rotationIndex: number;
   currentRotationTask: RotationTaskInfo;
+  vacationMode: boolean;
+  vacationStartedAt: number | null;
+  vacationSetByName: string | null;
 }
 
 export function TodayClient({
@@ -38,6 +44,9 @@ export function TodayClient({
   weekKey,
   rotationIndex,
   currentRotationTask,
+  vacationMode,
+  vacationStartedAt,
+  vacationSetByName,
 }: TodayClientProps) {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -61,13 +70,29 @@ export function TodayClient({
 
   return (
     <>
+      {vacationMode && (
+        <div className="px-6 py-2 border-b border-[#c9c2d4] bg-[#f6f4f9]">
+          <p className="label-mono text-[10px] text-[#6b6378]">
+            Paused since{" "}
+            {vacationStartedAt
+              ? formatInTimeZone(
+                  new Date(vacationStartedAt),
+                  TZ,
+                  "EEEE, MMMM d"
+                )
+              : "an earlier date"}
+            {vacationSetByName ? ` by ${vacationSetByName}` : ""}. Tap AWAY to
+            resume.
+          </p>
+        </div>
+      )}
       <main className="max-w-document mx-auto px-6 py-10 space-y-8">
         <div className="mb-2">
           <h1
             className="font-fraunces text-[28px] font-[500] text-[#1a1424] leading-tight"
             style={{ fontVariationSettings: '"opsz" 72' }}
           >
-            {dayLabel}
+            {vacationMode ? `Paused — viewing ${dayLabel}` : dayLabel}
           </h1>
           <p className="label-mono text-[#6b6378] mt-1">
             Week of {weekLabel} · Week {rotationNum} of the rotation

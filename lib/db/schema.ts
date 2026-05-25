@@ -32,6 +32,15 @@ export const sessions = sqliteTable("sessions", {
   expires_at: integer("expires_at", { mode: "number" }).notNull(),
 });
 
+export const appState = sqliteTable("app_state", {
+  id: integer("id").primaryKey(),
+  vacation_mode: integer("vacation_mode", { mode: "boolean" }).notNull().default(false),
+  vacation_started_at: integer("vacation_started_at"),
+  updated_by: text("updated_by").notNull(),
+  updated_at: integer("updated_at").notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Completion = typeof completions.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type AppState = typeof appState.$inferSelect;

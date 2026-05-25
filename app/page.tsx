@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionTokenFromCookie, getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { completions, users } from "@/lib/db/schema";
+import { completions, users, appState } from "@/lib/db/schema";
 import { getDailyPeriodKey, getWeeklyPeriodKey, getDateDisplay } from "@/lib/periods";
 import {
   DAILY_TASKS,
@@ -11,7 +11,7 @@ import {
   getCurrentRotationTask,
   getRotationIndex,
 } from "@/lib/tasks";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { Header } from "@/components/Header";
 import { TodayClient } from "@/components/TodayClient";
 
@@ -28,15 +28,27 @@ export default async function TodayPage() {
   const currentUser = allUsers.find((u) => u.id === userId);
   if (!currentUser) redirect("/login");
 
-  const dailyKey = getDailyPeriodKey();
-  const weeklyKey = getWeeklyPeriodKey();
+  const vacationRows = await db.select().from(appState).where(eq(appState.id, 1)).limit(1);
+  const vacation = vacationRows[0] ?? null;
+  const isVacation = vacation?.vacation_mode ?? false;
+  const refDate =
+    isVacation && vacation?.vacation_started_at
+      ? new Date(vacation.vacation_started_at)
+      : new Date();
+
+  const vacationUser = vacation?.updated_by
+    ? allUsers.find((u) => u.id === vacation.updated_by) ?? null
+    : null;
+
+  const dailyKey = getDailyPeriodKey(refDate);
+  const weeklyKey = getWeeklyPeriodKey(refDate);
 
   const rows = await db
     .select()
     .from(completions)
     .where(inArray(completions.period_key, [dailyKey, weeklyKey]));
 
-  const { dayLabel, weekLabel, weekKey } = getDateDisplay();
+  const { dayLabel, weekLabel, weekKey } = getDateDisplay(refDate);
   const rotationIndex = getRotationIndex(weekKey);
   const currentRotation = getCurrentRotationTask(weekKey);
 
@@ -46,6 +58,9 @@ export default async function TodayPage() {
         userId={currentUser.id}
         displayName={currentUser.display_name}
         color={currentUser.color}
+        vacationMode={isVacation}
+        vacationStartedAt={vacation?.vacation_started_at ?? null}
+        vacationSetByName={vacationUser?.display_name ?? null}
       />
       <TodayClient
         currentUserId={userId}
@@ -63,6 +78,9 @@ export default async function TodayPage() {
           description: currentRotation.description,
           duration: currentRotation.duration,
         }}
+        vacationMode={isVacation}
+        vacationStartedAt={vacation?.vacation_started_at ?? null}
+        vacationSetByName={vacationUser?.display_name ?? null}
       />
     </div>
   );

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionTokenFromCookie, getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, appState } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { Header } from "@/components/Header";
 import { ROTATION_TASKS, LAUNDRY_TASKS } from "@/lib/tasks";
 
@@ -18,12 +19,22 @@ export default async function SystemPage() {
   const currentUser = allUsers.find((u) => u.id === userId);
   if (!currentUser) redirect("/login");
 
+  const vacationRows = await db.select().from(appState).where(eq(appState.id, 1)).limit(1);
+  const vacation = vacationRows[0] ?? null;
+  const isVacation = vacation?.vacation_mode ?? false;
+  const vacationUser = vacation?.updated_by
+    ? allUsers.find((u) => u.id === vacation.updated_by) ?? null
+    : null;
+
   return (
     <div className="min-h-screen">
       <Header
         userId={currentUser.id}
         displayName={currentUser.display_name}
         color={currentUser.color}
+        vacationMode={isVacation}
+        vacationStartedAt={vacation?.vacation_started_at ?? null}
+        vacationSetByName={vacationUser?.display_name ?? null}
       />
       <main className="max-w-document mx-auto px-6 py-10 space-y-12">
         <div>

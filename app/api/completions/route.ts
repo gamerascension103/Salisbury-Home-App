@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { completions } from "@/lib/db/schema";
+import { completions, appState } from "@/lib/db/schema";
 import { getSessionTokenFromCookie, getSessionUser } from "@/lib/auth";
 import { TASK_MAP } from "@/lib/tasks";
 import { getPeriodKeyForTask } from "@/lib/periods";
@@ -19,7 +19,14 @@ export async function POST(request: NextRequest) {
   const task = TASK_MAP[task_key];
   if (!task) return NextResponse.json({ error: "Unknown task" }, { status: 400 });
 
-  const period_key = getPeriodKeyForTask(task.cadence);
+  const stateRows = await db.select().from(appState).where(eq(appState.id, 1)).limit(1);
+  const vacation = stateRows[0];
+  const refDate =
+    vacation?.vacation_mode && vacation.vacation_started_at
+      ? new Date(vacation.vacation_started_at)
+      : undefined;
+
+  const period_key = getPeriodKeyForTask(task.cadence, refDate);
   const now = Date.now();
 
   const existing = await db

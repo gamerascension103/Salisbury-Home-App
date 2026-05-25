@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionTokenFromCookie, getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { completions, users } from "@/lib/db/schema";
+import { completions, users, appState } from "@/lib/db/schema";
 import { getLast4WeekKeys, getDailyPeriodKey } from "@/lib/periods";
 import {
   DAILY_TASKS,
@@ -9,7 +9,7 @@ import {
   ROTATION_TASKS,
   LAUNDRY_TASKS,
 } from "@/lib/tasks";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { Header } from "@/components/Header";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,13 @@ export default async function HistoryPage() {
   if (!currentUser) redirect("/login");
 
   const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u]));
+
+  const vacationRows = await db.select().from(appState).where(eq(appState.id, 1)).limit(1);
+  const vacation = vacationRows[0] ?? null;
+  const isVacation = vacation?.vacation_mode ?? false;
+  const vacationUser = vacation?.updated_by
+    ? allUsers.find((u) => u.id === vacation.updated_by) ?? null
+    : null;
 
   const last4Weeks = getLast4WeekKeys();
   const dailyKey = getDailyPeriodKey();
@@ -56,6 +63,9 @@ export default async function HistoryPage() {
         userId={currentUser.id}
         displayName={currentUser.display_name}
         color={currentUser.color}
+        vacationMode={isVacation}
+        vacationStartedAt={vacation?.vacation_started_at ?? null}
+        vacationSetByName={vacationUser?.display_name ?? null}
       />
       <main className="max-w-document mx-auto px-6 py-10">
         <div className="mb-8">

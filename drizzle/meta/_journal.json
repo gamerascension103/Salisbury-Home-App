@@ -8,6 +8,13 @@
       "when": 1779672970591,
       "tag": "0000_cool_banshee",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1779681825028,
+      "tag": "0001_slimy_hex",
+      "breakpoints": true
     }
   ]
 }

@@ -8,14 +8,31 @@ interface HeaderProps {
   userId: string;
   displayName: string;
   color: string;
+  vacationMode: boolean;
+  vacationStartedAt: number | null;
+  vacationSetByName: string | null;
 }
 
-export function Header({ userId, displayName, color }: HeaderProps) {
+export function Header({
+  userId,
+  displayName,
+  color,
+  vacationMode,
+}: HeaderProps) {
   const router = useRouter();
 
   async function handleLogout() {
     await fetch("/api/logout", { method: "POST" });
     router.push("/login");
+    router.refresh();
+  }
+
+  async function handleVacationToggle() {
+    await fetch("/api/vacation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: !vacationMode }),
+    });
     router.refresh();
   }
 
@@ -46,6 +63,21 @@ export function Header({ userId, displayName, color }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={handleVacationToggle}
+          className="label-mono text-[10px] px-2.5 py-1 rounded-sm transition-all duration-150"
+          style={
+            vacationMode
+              ? {
+                  background:
+                    "linear-gradient(135deg, var(--accent-deep), var(--ink))",
+                  color: "#d4d0dc",
+                }
+              : { color: "#8a8599" }
+          }
+        >
+          {vacationMode ? "AWAY" : "AT HOME"}
+        </button>
         <UserBadge userId={userId} displayName={displayName} color={color} />
         <button
           onClick={handleLogout}
