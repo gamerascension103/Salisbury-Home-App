@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { Check } from "lucide-react";
 
@@ -48,8 +48,6 @@ export function TaskRow({
   );
   const [showDetail, setShowDetail] = useState(false);
   const [animating, setAnimating] = useState(false);
-  const tapCountRef = useRef(0);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const completer = completion
     ? users.find((u) => u.id === completion.user_id)
@@ -58,6 +56,7 @@ export function TaskRow({
   const handleTap = useCallback(async () => {
     if (animating) return;
 
+    // Case 1: not yet completed → create
     if (!completion) {
       setAnimating(true);
       const optimistic: CompletionData = {
@@ -77,9 +76,7 @@ export function TaskRow({
 
       if (res.ok) {
         const data = await res.json();
-        setCompletion((prev) =>
-          prev ? { ...prev, id: data.id } : null
-        );
+        setCompletion((prev) => (prev ? { ...prev, id: data.id } : null));
       } else {
         setCompletion(null);
         onError("Couldn't save — try again.");
@@ -88,38 +85,35 @@ export function TaskRow({
       return;
     }
 
-    tapCountRef.current += 1;
-    if (tapCountRef.current === 1) {
+    // Case 2: completed by someone else → toggle detail panel
+    if (completion.user_id !== currentUserId) {
       setShowDetail((v) => !v);
-      tapTimerRef.current = setTimeout(() => {
-        tapCountRef.current = 0;
-      }, 400);
-    } else if (tapCountRef.current >= 2) {
-      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-      tapCountRef.current = 0;
-      setShowDetail(false);
+      return;
+    }
 
-      if (completion.user_id !== currentUserId) {
+    // Case 3: completed by current user → undo (DELETE)
+    if (completion.id === -1) {
+      // Still saving — wait for it to land before allowing undo
+      return;
+    }
+
+    setAnimating(true);
+    const saved = completion;
+    setCompletion(null);
+    setShowDetail(false);
+
+    const res = await fetch(`/api/completions/${saved.id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      setCompletion(saved);
+      if (res.status === 403) {
         onError("You can only undo your own completions.");
-        return;
-      }
-
-      if (completion.id === -1) return;
-
-      const saved = completion;
-      setCompletion(null);
-      const res = await fetch(`/api/completions/${saved.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        setCompletion(saved);
-        if (res.status === 403) {
-          onError("You can only undo your own completions.");
-        } else {
-          onError("Couldn't undo — try again.");
-        }
+      } else {
+        onError("Couldn't undo — try again.");
       }
     }
+    setAnimating(false);
   }, [completion, animating, currentUserId, taskKey, onError]);
 
   const checkerColor = completer?.color ?? "#5b3a8f";
@@ -176,9 +170,6 @@ export function TaskRow({
               new Date(completion.completed_at),
               TZ,
               "h:mm a"
-            )}
-            {completion.user_id === currentUserId && (
-              <span className="ml-2 text-[#8a8599]">· tap again to undo</span>
             )}
           </span>
         )}
