@@ -4,6 +4,7 @@
 
 ```
 salisbury_v1 | Shipped Salisbury Home App v1: two-user shared cleaning checklist with daily/weekly/rotation/laundry tracking, last 4 weeks history, shared-password auth, deployed to Vercel.
+fix_migration_system | Regenerated Drizzle migrations via drizzle-kit (had been hand-written, missing journal). Seeded users via separate scripts/seed-users.mjs. Login working end-to-end.
 ```
 
 ### v1 — Initial build (2026-05-24)
